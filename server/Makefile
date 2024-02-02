@@ -19,7 +19,8 @@ all: $(TARGET)
 
 .PHONY: waking-proc-lib
 waking-proc-lib: $(WAKING_PROC_LIB)
-	- rm -rf $(WAKING_PROC_LIB)
+
+$(WAKING_PROC_LIB):
 	$(MAKE) -C $(WAKING_PROC_LIB_DIR)
 
 $(TARGET): $(OBJS)
@@ -35,6 +36,7 @@ clean:
 	-rm -rf $(OBJ)
 
 fclean: clean
+	-rm -rf $(WAKING_PROC_LIB)
 	-rm $(TARGET)
 
 re:  fclean waking-proc-lib all
