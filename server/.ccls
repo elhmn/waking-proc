@@ -1,0 +1,5 @@
+clang
+-I./includes
+-Wall
+-Werror
+-Wextra
