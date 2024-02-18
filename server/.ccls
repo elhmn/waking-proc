@@ -1,5 +1,6 @@
 clang
 -I./includes
+-I../lib/includes
 -Wall
 -Werror
 -Wextra

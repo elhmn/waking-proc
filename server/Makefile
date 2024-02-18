@@ -2,7 +2,7 @@ TARGET = waking-proc-server
 CC = clang
 FLAGS = -Wall -Werror -Wextra
 
-SRC = main.c
+SRC = main.c parse_options.c
 SRCDIR = ./srcs/
 SRCS = $(addprefix $(SRCDIR), $(SRC))
 
