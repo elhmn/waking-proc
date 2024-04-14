@@ -6,32 +6,32 @@
 #define BUFFER_SIZE 1024
 
 typedef struct str {
-	char *buf;
-	size_t size;
-	int32_t cap;
+    char *buf;
+    size_t size;
+    int32_t cap;
 } t_str;
 
 t_str *new_str(size_t size) {
-	t_str *s = (t_str*)malloc(sizeof(t_str));
+    t_str *s = (t_str*)malloc(sizeof(t_str));
     if (!(s->buf = (char *)malloc((size) * sizeof(char)))) {
         return NULL;
     }
     memset(s->buf, 0, size);
-	s->size = size;
-	s->cap = size;
-	return s;
+    s->size = size;
+    s->cap = size;
+    return s;
 }
 
 void append_str(t_str *s, char *buf) {
-	int len = strlen(buf);
-	if (len >= s->cap) {
-		s->size += BUFFER_SIZE;
-		s->buf = (char*)realloc(s->buf, s->size * sizeof(char));
-		s->cap = s->size;
-	} else {
-		strncat(s->buf, buf, len);
-		s->cap = s->size - strlen(s->buf);
-	}
+    int len = strlen(buf);
+    if (len >= s->cap) {
+        s->size += BUFFER_SIZE;
+        s->buf = (char*)realloc(s->buf, s->size * sizeof(char));
+        s->cap = s->size;
+    } else {
+        strncat(s->buf, buf, len);
+        s->cap = s->size - strlen(s->buf);
+    }
 }
 
 void do_something(void) { printf("waking proc library\n"); }
@@ -83,6 +83,6 @@ char *list_processes(void) {
     printf("Not supported for linux\n");
     return -1;
 #elif __APPLE__
-	return apple_list_processes();
+    return apple_list_processes();
 #endif
 }

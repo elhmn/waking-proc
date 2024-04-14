@@ -1,6 +1,8 @@
 #ifndef LIB_H
 #define LIB_H
 
+# define UNIX_SOCKET_PATH "/tmp/waking-proc-socket"
+
 typedef enum {
     SOCKET_MODE_UNKNOWN,
     SOCKET_MODE_LOCAL,

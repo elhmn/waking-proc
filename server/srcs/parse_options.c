@@ -29,6 +29,7 @@ int parse_options(t_options *opts, int ac, char **av) {
         case 1:
             if (optarg) {
                 opts->verbose = atoi(optarg);
+
             }
             break;
         case 'm':
@@ -43,19 +44,19 @@ int parse_options(t_options *opts, int ac, char **av) {
 }
 
 e_socket_mode str_to_socket_mode(char *str) {
-	if (!str) {
-		return SOCKET_MODE_UNKNOWN;
-	}
+    if (!str) {
+        return SOCKET_MODE_UNKNOWN;
+    }
 
-	if (strcmp(str, "remote") == 0) {
-		return SOCKET_MODE_REMOTE;
-	} else if (strcmp(str, "local") == 0) {
-		return SOCKET_MODE_LOCAL;
-	} else {
-		return SOCKET_MODE_UNKNOWN;
-	}
+    if (strcmp(str, "remote") == 0) {
+        return SOCKET_MODE_REMOTE;
+    } else if (strcmp(str, "local") == 0) {
+        return SOCKET_MODE_LOCAL;
+    } else {
+        return SOCKET_MODE_UNKNOWN;
+    }
 
-	return SOCKET_MODE_UNKNOWN;
+    return SOCKET_MODE_UNKNOWN;
 }
 
 char *padding(int depth) {
