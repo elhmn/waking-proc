@@ -33,17 +33,16 @@ int main(int ac, char **av) {
     // and whenever I am done reading the process tree, I should send
     // json formatted data to the client that is listening on every openeed connections
 
-//     while (1)  {
+    while (1)  {
         printf("Process table lookup...\n");
         buf = list_processes();
-        printf("buf: [%s]\n", buf); // Debug
         if (buf) {
             if (opts.verbose) {
-                printf("%s", buf);
+                printf("%s\n", buf);
             }
             free(buf);
         }
         printf("Process able lookup done\n");
-//         usleep(DEFAULT_POLL_INTERVAL);
-//     }
+        usleep(DEFAULT_POLL_INTERVAL);
+    }
 }

@@ -2,14 +2,15 @@
 #include <libproc.h>
 #endif
 
+#include "waking-proc.h"
 #include <ctype.h>
 #include <dirent.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "waking-proc.h"
+#include <unistd.h>
 
-#define BUFFER_SIZE 2048
+#define BUFFER_SIZE 2048 * 1000
 
 typedef struct str {
     char *buf;
@@ -56,18 +57,36 @@ int is_numeric(const char *name) {
 
 // Function to split a string
 char **str_split(char *str, const char delim) {
-    //     int len = 0;
+    char *orig = str;
+    int i = 0;
+    char **arr = NULL;
 
+    // Count the number of delimiters in the string
     while (str) {
-        if ((str = strchr(str, delim)))
+        if ((str = strchr(str, delim))) {
             str++;
-        //         str = strchr(str, delim);
-        //             len++;
-        printf("[%s]", str); // Debug
+            i++;
+        }
     }
 
-    //     printf("count [%d]", len); // Debug
-    return NULL;
+    arr = (char **)malloc((i + 1) * sizeof(char *));
+    if (!arr) {
+        return NULL;
+    }
+    arr[i] = NULL;
+
+    str = orig;
+    i = 0;
+    while (str) {
+        char *tmp = str;
+        if ((str = strchr(str, delim))) {
+            *str = '\0';
+            arr[i] = tmp;
+            str++;
+            i++;
+        }
+    }
+    return arr;
 }
 
 void do_something(void) { printf("waking proc library\n"); }
@@ -89,6 +108,7 @@ static int read_proc_stat(char *pid, char *buf) {
         return -1;
     }
 
+    //     bzero(buf, BUFFER_SIZE);
     fread(buf, BUFFER_SIZE, 1, fp);
     fclose(fp);
     return 0;
@@ -141,10 +161,11 @@ static void proc_free(t_proc **proc) {
 }
 
 /*
- *  get_proc_info, populate the proc structure with information extracted from various files in /proc
- *  and return the structure.
+ *  get_proc_info, populate the proc structure with information extracted from
+ * various files in /proc and return the structure.
  *
- *  The caller is responsible for freeing the memory allocated for the proc structure
+ *  The caller is responsible for freeing the memory allocated for the proc
+ * structure
  */
 static t_proc *get_proc_info(char *pid, char *buf) {
     t_proc *proc = NULL;
@@ -153,15 +174,25 @@ static t_proc *get_proc_info(char *pid, char *buf) {
     }
     proc_init(proc);
 
+    bzero(buf, BUFFER_SIZE);
     if (read_proc_stat(pid, buf) < 0) {
         printf("Failed to read /proc/%s/stat\n", pid);
         free(proc);
         return NULL;
     }
 
-    proc->pid = strdup(pid);
-//     proc->name = "je suis con";
+//     printf("buf [%s]\n", buf);          // Debug
+    char *buf2 = strdup(buf);           // Debug
+    char **arr = str_split(buf2, ' ');  // Debug
+//     printf("arr[0] -> [%s]\n", arr[0]); // Debug
+//     printf("arr[1] -> [%s]\n", arr[1]); // Debug
+//     printf("arr[2] -> [%s]\n", arr[2]); // Debug
 
+    proc->pid = strdup(pid);
+    proc->name = strdup(arr[1]);
+
+    free(arr);
+    free(buf2);
     return proc;
 }
 
@@ -175,7 +206,6 @@ static void proc_to_string(t_proc *proc, char *buf) {
     sprintf(buf, "%s}", buf);
 }
 
-
 static char *linux_list_processes(void) {
     struct dirent *entry = NULL;
     DIR *dp = NULL;
@@ -185,7 +215,7 @@ static char *linux_list_processes(void) {
     t_str *s = NULL;
     char *pid = NULL;
 
-    if (!(s = new_str(BUFFER_SIZE * 1000))) {
+    if (!(s = new_str(BUFFER_SIZE))) {
         perror("Failed to allocate a new string");
         return NULL;
     }
@@ -195,6 +225,7 @@ static char *linux_list_processes(void) {
         return NULL;
     }
 
+    append_str(s, "[");
     while ((entry = readdir(dp))) {
         // ensure we are dealing with a process directory
         if (entry->d_type == DT_DIR && is_numeric(entry->d_name)) {
@@ -205,22 +236,10 @@ static char *linux_list_processes(void) {
             proc_to_string(proc, buf);
             proc_free(&proc);
             append_str(s, buf);
-
-            //             size_t size = 0;
-            //             snprintf(buf, "[%s]: {\n%s\n}\n", entry->d_name,
-            //             buf); // Debug str_split(buf, ' '); char **tokens =
-            //             str_split(buf, ' ', &size); while (size--) {
-            //                 printf("%s\n", tokens[size]);
-            //             }
-
-            //             printf("[%s]: {\n%s\n}\n", entry->d_name, buf); //
-            //             Debug
-            //
-            //             printf("Process ID: %s\n", entry->d_name);
-            //
-            // Clear the buffer
+            append_str(s, ",");
         }
     }
+    append_str(s, "]");
 
     str = s->buf;
     free(s);
