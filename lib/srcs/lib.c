@@ -10,7 +10,7 @@
 #include <string.h>
 #include <unistd.h>
 
-#define BUFFER_SIZE 2048 * 1000
+#define BUFFER_SIZE 1024
 
 typedef struct str {
     char *buf;
@@ -37,13 +37,13 @@ void append_str(t_str *s, char *buf) {
     int len = strlen(buf);
 
     if (s->cap - s->size < (size_t)len) {
-        s->size += len;
         s->buf = (char *)realloc(s->buf, (s->cap + BUFFER_SIZE) * sizeof(char));
         s->cap += BUFFER_SIZE;
     } else {
         strncat(s->buf, buf, len);
-        s->size += strlen(s->buf);
     }
+
+    s->size = strlen(s->buf);
 }
 
 // Function to check if the directory name is numeric
@@ -239,6 +239,8 @@ static char *linux_list_processes(void) {
             append_str(s, ",");
         }
     }
+    // Remove the trailing comma
+    s->buf[s->size - 1] = '\0';
     append_str(s, "]");
 
     str = s->buf;
