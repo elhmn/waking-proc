@@ -81,7 +81,7 @@ char **str_split(char *str, const char delim) {
         char *tmp = str;
         if ((str = strchr(str, delim))) {
             *str = '\0';
-            arr[i] = tmp;
+            arr[i] = strdup(tmp);
             str++;
             i++;
         }
@@ -160,6 +160,19 @@ static void proc_free(t_proc **proc) {
     *proc = NULL;
 }
 
+static void free_arr(char **arr) {
+    char **tmp = arr;
+    if (!arr) {
+        return;
+    }
+
+    while (*tmp) {
+        free(*tmp++);
+    }
+    free(arr);
+}
+
+
 /*
  *  get_proc_info, populate the proc structure with information extracted from
  * various files in /proc and return the structure.
@@ -181,18 +194,12 @@ static t_proc *get_proc_info(char *pid, char *buf) {
         return NULL;
     }
 
-//     printf("buf [%s]\n", buf);          // Debug
-    char *buf2 = strdup(buf);           // Debug
-    char **arr = str_split(buf2, ' ');  // Debug
-//     printf("arr[0] -> [%s]\n", arr[0]); // Debug
-//     printf("arr[1] -> [%s]\n", arr[1]); // Debug
-//     printf("arr[2] -> [%s]\n", arr[2]); // Debug
+    char **arr = str_split(buf, ' ');
 
     proc->pid = strdup(pid);
     proc->name = strdup(arr[1]);
 
-    free(arr);
-    free(buf2);
+    free_arr(arr);
     return proc;
 }
 
