@@ -36,6 +36,7 @@ int main(int ac, char **av) {
 //     while (1)  {
         printf("Process table lookup...\n");
         buf = list_processes();
+        printf("buf: [%s]\n", buf); // Debug
         if (buf) {
             if (opts.verbose) {
                 printf("%s", buf);

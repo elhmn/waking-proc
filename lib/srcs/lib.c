@@ -1,12 +1,13 @@
 #ifdef __APPLE__
- #include <libproc.h>
+#include <libproc.h>
 #endif
 
+#include <ctype.h>
+#include <dirent.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <dirent.h>
-#include <ctype.h>
+#include "waking-proc.h"
 
 #define BUFFER_SIZE 2048
 
@@ -17,7 +18,7 @@ typedef struct str {
 } t_str;
 
 t_str *new_str(size_t size) {
-    t_str *s = (t_str*)malloc(sizeof(t_str));
+    t_str *s = (t_str *)malloc(sizeof(t_str));
     if (!s) {
         return NULL;
     }
@@ -36,7 +37,7 @@ void append_str(t_str *s, char *buf) {
 
     if (s->cap - s->size < (size_t)len) {
         s->size += len;
-        s->buf = (char*)realloc(s->buf, (s->cap + BUFFER_SIZE) * sizeof(char));
+        s->buf = (char *)realloc(s->buf, (s->cap + BUFFER_SIZE) * sizeof(char));
         s->cap += BUFFER_SIZE;
     } else {
         strncat(s->buf, buf, len);
@@ -55,17 +56,17 @@ int is_numeric(const char *name) {
 
 // Function to split a string
 char **str_split(char *str, const char delim) {
-//     int len = 0;
+    //     int len = 0;
 
     while (str) {
         if ((str = strchr(str, delim)))
             str++;
-//         str = strchr(str, delim);
-//             len++;
+        //         str = strchr(str, delim);
+        //             len++;
         printf("[%s]", str); // Debug
     }
 
-//     printf("count [%d]", len); // Debug
+    //     printf("count [%d]", len); // Debug
     return NULL;
 }
 
@@ -74,65 +75,126 @@ void do_something(void) { printf("waking proc library\n"); }
 // Define windows functions here
 #elif __linux__
 
+/*
+ * Read the /proc/[pid]/stat file, and store the contents in the buffer
+ */
+static int read_proc_stat(char *pid, char *buf) {
+    FILE *fp = NULL;
+    if (!pid || !buf) {
+        return -1;
+    }
+
+    snprintf(buf, BUFFER_SIZE, "/proc/%s/stat", pid);
+    if (!(fp = fopen(buf, "r"))) {
+        return -1;
+    }
+
+    fread(buf, BUFFER_SIZE, 1, fp);
+    fclose(fp);
+    return 0;
+}
+
+static void proc_init(t_proc *proc) {
+    if (!proc) {
+        return;
+    }
+
+    proc->name = NULL;
+    proc->pid = NULL;
+    proc->ppid = NULL;
+    proc->uid = NULL;
+    proc->gid = NULL;
+    proc->state = NULL;
+    proc->time = NULL;
+    proc->utime = NULL;
+    proc->stime = NULL;
+    proc->priority = NULL;
+    proc->command = NULL;
+}
+
+/*
+ *  get_proc_info, populate the proc structure with information extracted from various files in /proc
+ *  and return the structure.
+ *
+ *  The caller is responsible for freeing the memory allocated for the proc structure
+ */
+static t_proc *get_proc_info(char *pid, char *buf) {
+    t_proc *proc = NULL;
+    if (!(proc = (t_proc *)malloc(sizeof(t_proc)))) {
+        return NULL;
+    }
+    proc_init(proc);
+
+    if (read_proc_stat(pid, buf) < 0) {
+        printf("Failed to read /proc/%s/stat\n", pid);
+        free(proc);
+        return NULL;
+    }
+
+    proc->name = "je suis con";
+
+    return proc;
+}
+
+static void proc_to_string(t_proc *proc, char *buf) {
+    if (!proc) {
+        return;
+    }
+    sprintf(buf, "{");
+    sprintf(buf, "%s\"name\":\"%s\"", buf, proc->name);
+    sprintf(buf, "%s}", buf);
+}
+
 static char *linux_list_processes(void) {
-    struct dirent *entry;
-    DIR *dp;
-    char buf[BUFFER_SIZE];
-    t_str *s = NULL;
+    struct dirent *entry = NULL;
+    DIR *dp = NULL;
+    char buf[BUFFER_SIZE] = {0};
+    t_proc *proc = NULL;
     char *str = NULL;
+    t_str *s = NULL;
+    char *pid = NULL;
 
-    s = new_str(BUFFER_SIZE);
+    if (!(s = new_str(BUFFER_SIZE))) {
+        perror("Failed to allocate a new string");
+        return NULL;
+    }
 
-    // Open the /proc directory
-    dp = opendir("/proc");
-    if (dp == NULL) {
+    if (!(dp = opendir("/proc"))) {
         perror("Failed to open /proc");
         return NULL;
     }
 
-    // Read entries from the /proc directory
-    while ((entry = readdir(dp)) != NULL) {
+    while ((entry = readdir(dp))) {
+        // ensure we are dealing with a process directory
         if (entry->d_type == DT_DIR && is_numeric(entry->d_name)) {
-            append_str(s, entry->d_name);
-            append_str(s, "\n");
-
-            // print the process status /proc/<pid>/status
-            snprintf(buf, BUFFER_SIZE, "/proc/%s/stat", entry->d_name);
-
-            FILE *fp = fopen(buf, "r");
-            if (fp == NULL) {
-                printf("Failed to open file [%s]\n", buf);
+            pid = entry->d_name;
+            if (!(proc = get_proc_info(pid, buf))) {
                 continue;
             }
+            proc_to_string(proc, buf);
+            free(proc);
+            append_str(s, buf);
 
-            bzero(buf, BUFFER_SIZE);
+            //             size_t size = 0;
+            //             snprintf(buf, "[%s]: {\n%s\n}\n", entry->d_name,
+            //             buf); // Debug str_split(buf, ' '); char **tokens =
+            //             str_split(buf, ' ', &size); while (size--) {
+            //                 printf("%s\n", tokens[size]);
+            //             }
 
-            // Read the file
-            fread(buf, BUFFER_SIZE, 1, fp);
-
-            // Close the file
-            fclose(fp);
-
-//             size_t size = 0;
-//             snprintf(buf, "[%s]: {\n%s\n}\n", entry->d_name, buf); // Debug
-            str_split(buf, ' ');
-//             char **tokens = str_split(buf, ' ', &size);
-//             while (size--) {
-//                 printf("%s\n", tokens[size]);
-//             }
-
-//             printf("[%s]: {\n%s\n}\n", entry->d_name, buf); // Debug
-//
-//             printf("Process ID: %s\n", entry->d_name);
+            //             printf("[%s]: {\n%s\n}\n", entry->d_name, buf); //
+            //             Debug
+            //
+            //             printf("Process ID: %s\n", entry->d_name);
+            //
+            // Clear the buffer
         }
     }
 
-
     str = s->buf;
-
     free(s);
     closedir(dp);
-   return str;
+    return str;
 }
 
 #elif __APPLE__
@@ -170,8 +232,8 @@ static char *apple_list_processes(void) {
         char buf[BUFFER_SIZE];
 
         // PID;RSS(kb);Name
-        snprintf(buf, BUFFER_SIZE, "%d;%llu;%s\n", pid, taskInfo.pti_resident_size / 1024,
-               processName);
+        snprintf(buf, BUFFER_SIZE, "%d;%llu;%s\n", pid,
+                 taskInfo.pti_resident_size / 1024, processName);
         append_str(s, buf);
     }
 
@@ -185,7 +247,6 @@ char *list_processes(void) {
     printf("Not supported for Windows\n");
     return NULL;
 #elif __linux__
-//     printf("Not supported for linux\n");
     return linux_list_processes();
 #elif __APPLE__
     return apple_list_processes();
