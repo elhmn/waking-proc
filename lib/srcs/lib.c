@@ -95,10 +95,6 @@ static int read_proc_stat(char *pid, char *buf) {
 }
 
 static void proc_init(t_proc *proc) {
-    if (!proc) {
-        return;
-    }
-
     proc->name = NULL;
     proc->pid = NULL;
     proc->ppid = NULL;
@@ -110,6 +106,38 @@ static void proc_init(t_proc *proc) {
     proc->stime = NULL;
     proc->priority = NULL;
     proc->command = NULL;
+}
+
+static void proc_free(t_proc **proc) {
+    t_proc *p = *proc;
+    if (!proc || !*proc) {
+        return;
+    }
+
+    if (p->name)
+        free(p->name);
+    if (p->pid)
+        free(p->pid);
+    if (p->ppid)
+        free(p->ppid);
+    if (p->uid)
+        free(p->uid);
+    if (p->gid)
+        free(p->gid);
+    if (p->state)
+        free(p->state);
+    if (p->time)
+        free(p->time);
+    if (p->utime)
+        free(p->utime);
+    if (p->stime)
+        free(p->stime);
+    if (p->priority)
+        free(p->priority);
+    if (p->command)
+        free(p->command);
+    free(*proc);
+    *proc = NULL;
 }
 
 /*
@@ -131,7 +159,8 @@ static t_proc *get_proc_info(char *pid, char *buf) {
         return NULL;
     }
 
-    proc->name = "je suis con";
+    proc->pid = strdup(pid);
+//     proc->name = "je suis con";
 
     return proc;
 }
@@ -141,9 +170,11 @@ static void proc_to_string(t_proc *proc, char *buf) {
         return;
     }
     sprintf(buf, "{");
-    sprintf(buf, "%s\"name\":\"%s\"", buf, proc->name);
+    sprintf(buf, "%s\"name\":\"%s\",", buf, proc->name);
+    sprintf(buf, "%s\"pid\":\"%s\"", buf, proc->pid);
     sprintf(buf, "%s}", buf);
 }
+
 
 static char *linux_list_processes(void) {
     struct dirent *entry = NULL;
@@ -154,7 +185,7 @@ static char *linux_list_processes(void) {
     t_str *s = NULL;
     char *pid = NULL;
 
-    if (!(s = new_str(BUFFER_SIZE))) {
+    if (!(s = new_str(BUFFER_SIZE * 1000))) {
         perror("Failed to allocate a new string");
         return NULL;
     }
@@ -172,7 +203,7 @@ static char *linux_list_processes(void) {
                 continue;
             }
             proc_to_string(proc, buf);
-            free(proc);
+            proc_free(&proc);
             append_str(s, buf);
 
             //             size_t size = 0;
