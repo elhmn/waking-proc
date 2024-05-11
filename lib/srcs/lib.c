@@ -1,47 +1,148 @@
-#include <libproc.h>
+#ifdef __APPLE__
+ #include <libproc.h>
+#endif
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <dirent.h>
+#include <ctype.h>
 
-#define BUFFER_SIZE 1024
+#define BUFFER_SIZE 2048
 
 typedef struct str {
     char *buf;
     size_t size;
-    int32_t cap;
+    size_t cap;
 } t_str;
 
 t_str *new_str(size_t size) {
     t_str *s = (t_str*)malloc(sizeof(t_str));
+    if (!s) {
+        return NULL;
+    }
+
     if (!(s->buf = (char *)malloc((size) * sizeof(char)))) {
         return NULL;
     }
     memset(s->buf, 0, size);
-    s->size = size;
+    s->size = 0;
     s->cap = size;
     return s;
 }
 
 void append_str(t_str *s, char *buf) {
     int len = strlen(buf);
-    if (len >= s->cap) {
-        s->size += BUFFER_SIZE;
-        s->buf = (char*)realloc(s->buf, s->size * sizeof(char));
-        s->cap = s->size;
+
+    if (s->cap - s->size < (size_t)len) {
+        s->size += len;
+        s->buf = (char*)realloc(s->buf, (s->cap + BUFFER_SIZE) * sizeof(char));
+        s->cap += BUFFER_SIZE;
     } else {
         strncat(s->buf, buf, len);
-        s->cap = s->size - strlen(s->buf);
+        s->size += strlen(s->buf);
     }
 }
 
-void do_something(void) { printf("waking proc library\n"); }
+// Function to check if the directory name is numeric
+int is_numeric(const char *name) {
+    for (int i = 0; name[i] != '\0'; i++) {
+        if (!isdigit(name[i]))
+            return 0;
+    }
+    return 1;
+}
 
+// Function to split a string
+char **str_split(char *str, const char delim) {
+//     int len = 0;
+
+    while (str) {
+        if ((str = strchr(str, delim)))
+            str++;
+//         str = strchr(str, delim);
+//             len++;
+        printf("[%s]", str); // Debug
+    }
+
+//     printf("count [%d]", len); // Debug
+    return NULL;
+}
+
+void do_something(void) { printf("waking proc library\n"); }
+#ifdef _WIN32
+// Define windows functions here
+#elif __linux__
+
+static char *linux_list_processes(void) {
+    struct dirent *entry;
+    DIR *dp;
+    char buf[BUFFER_SIZE];
+    t_str *s = NULL;
+    char *str = NULL;
+
+    s = new_str(BUFFER_SIZE);
+
+    // Open the /proc directory
+    dp = opendir("/proc");
+    if (dp == NULL) {
+        perror("Failed to open /proc");
+        return NULL;
+    }
+
+    // Read entries from the /proc directory
+    while ((entry = readdir(dp)) != NULL) {
+        if (entry->d_type == DT_DIR && is_numeric(entry->d_name)) {
+            append_str(s, entry->d_name);
+            append_str(s, "\n");
+
+            // print the process status /proc/<pid>/status
+            snprintf(buf, BUFFER_SIZE, "/proc/%s/stat", entry->d_name);
+
+            FILE *fp = fopen(buf, "r");
+            if (fp == NULL) {
+                printf("Failed to open file [%s]\n", buf);
+                continue;
+            }
+
+            bzero(buf, BUFFER_SIZE);
+
+            // Read the file
+            fread(buf, BUFFER_SIZE, 1, fp);
+
+            // Close the file
+            fclose(fp);
+
+//             size_t size = 0;
+//             snprintf(buf, "[%s]: {\n%s\n}\n", entry->d_name, buf); // Debug
+            str_split(buf, ' ');
+//             char **tokens = str_split(buf, ' ', &size);
+//             while (size--) {
+//                 printf("%s\n", tokens[size]);
+//             }
+
+//             printf("[%s]: {\n%s\n}\n", entry->d_name, buf); // Debug
+//
+//             printf("Process ID: %s\n", entry->d_name);
+        }
+    }
+
+
+    str = s->buf;
+
+    free(s);
+    closedir(dp);
+   return str;
+}
+
+#elif __APPLE__
 static char *apple_list_processes(void) {
     pid_t pids[2048];
     int bytesReturned;
     int numPids;
     t_str *s = NULL;
     s = new_str(BUFFER_SIZE);
+    char *str = NULL;
 
     bytesReturned = proc_listpids(PROC_ALL_PIDS, 0, pids, sizeof(pids));
     if (bytesReturned <= 0) {
@@ -67,21 +168,25 @@ static char *apple_list_processes(void) {
         }
 
         char buf[BUFFER_SIZE];
+
         // PID;RSS(kb);Name
         snprintf(buf, BUFFER_SIZE, "%d;%llu;%s\n", pid, taskInfo.pti_resident_size / 1024,
                processName);
         append_str(s, buf);
     }
-    return s->buf;
+
+    str = s->buf;
+    return str;
 }
+#endif
 
 char *list_processes(void) {
 #ifdef _WIN32
     printf("Not supported for Windows\n");
-    return -1;
+    return NULL;
 #elif __linux__
-    printf("Not supported for linux\n");
-    return -1;
+//     printf("Not supported for linux\n");
+    return linux_list_processes();
 #elif __APPLE__
     return apple_list_processes();
 #endif

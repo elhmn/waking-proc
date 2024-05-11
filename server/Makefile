@@ -13,7 +13,7 @@ OBJS = $(addprefix $(OBJDIR), $(OBJ))
 WAKING_PROC_LIB_DIR=../lib
 WAKING_PROC_LIB=$(WAKING_PROC_LIB_DIR)/libwaking-proc.a
 INC = -I ./includes/ -I $(WAKING_PROC_LIB_DIR)/includes/
-SANITIZE = -fsanitize=address,undefined -ferror-limit=10
+SANITIZE = -fsanitize=address,undefined
 
 all: $(TARGET)
 
