@@ -229,6 +229,10 @@ static char *linux_list_processes(void) {
     while ((entry = readdir(dp))) {
         // ensure we are dealing with a process directory
         if (entry->d_type == DT_DIR && is_numeric(entry->d_name)) {
+            if (s->size && s->buf[s->size - 1] == '}') {
+                append_str(s, ",");
+            }
+
             pid = entry->d_name;
             if (!(proc = get_proc_info(pid, buf))) {
                 continue;
@@ -236,11 +240,8 @@ static char *linux_list_processes(void) {
             proc_to_string(proc, buf);
             proc_free(&proc);
             append_str(s, buf);
-            append_str(s, ",");
         }
     }
-    // Remove the trailing comma
-    s->buf[s->size - 1] = '\0';
     append_str(s, "]");
 
     str = s->buf;
