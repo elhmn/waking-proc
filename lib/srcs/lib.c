@@ -37,12 +37,11 @@ void append_str(t_str *s, char *buf) {
     int len = strlen(buf);
 
     if (s->cap - s->size < (size_t)len) {
-        s->buf = (char *)realloc(s->buf, (s->cap + BUFFER_SIZE) * sizeof(char));
-        s->cap += BUFFER_SIZE;
-    } else {
-        strncat(s->buf, buf, len);
+        s->buf = (char *)realloc(s->buf, (s->cap + BUFFER_SIZE + len) * sizeof(char));
+        s->cap += BUFFER_SIZE + len;
     }
 
+    strncat(s->buf, buf, len);
     s->size = strlen(s->buf);
 }
 
@@ -187,7 +186,7 @@ static t_proc *get_proc_info(char *pid, char *buf) {
     }
     proc_init(proc);
 
-    bzero(buf, BUFFER_SIZE);
+    bzero(buf, BUFFER_SIZE * 1000);
     if (read_proc_stat(pid, buf) < 0) {
         printf("Failed to read /proc/%s/stat\n", pid);
         free(proc);
@@ -216,7 +215,7 @@ static void proc_to_string(t_proc *proc, char *buf) {
 static char *linux_list_processes(void) {
     struct dirent *entry = NULL;
     DIR *dp = NULL;
-    char buf[BUFFER_SIZE] = {0};
+    char buf[BUFFER_SIZE * 1000] = {0};
     t_proc *proc = NULL;
     char *str = NULL;
     t_str *s = NULL;
