@@ -36,7 +36,7 @@ t_str *new_str(size_t size) {
 void append_str(t_str *s, char *buf) {
     int len = strlen(buf);
 
-    if (s->cap - s->size < (size_t)len) {
+    if (s->cap - s->size <= (size_t)len) {
         s->buf = (char *)realloc(s->buf, (s->cap + BUFFER_SIZE + len) * sizeof(char));
         s->cap += BUFFER_SIZE + len;
     }
