@@ -171,6 +171,21 @@ static void free_arr(char **arr) {
     free(arr);
 }
 
+char *get_cmdline(char *pid) {
+    char buf[BUFFER_SIZE];
+    bzero(buf, BUFFER_SIZE);
+    snprintf(buf, BUFFER_SIZE, "/proc/%s/cmdline", pid);
+    FILE *fp = fopen(buf, "r");
+    if (!fp) {
+        return NULL;
+    }
+
+    bzero(buf, BUFFER_SIZE);
+    fread(buf, BUFFER_SIZE, 1, fp);
+    fclose(fp);
+    return strdup(buf);
+}
+
 
 /*
  *  get_proc_info, populate the proc structure with information extracted from
@@ -197,6 +212,7 @@ static t_proc *get_proc_info(char *pid, char *buf) {
 
     proc->pid = strdup(pid);
     proc->name = strdup(arr[1]);
+    proc->command = get_cmdline(pid);
 
     free_arr(arr);
     return proc;
@@ -208,6 +224,7 @@ static void proc_to_string(t_proc *proc, char *buf) {
     }
     sprintf(buf, "{");
     sprintf(buf, "%s\"name\":\"%s\",", buf, proc->name);
+    sprintf(buf, "%s\"command\":\"%s\",", buf, proc->command);
     sprintf(buf, "%s\"pid\":\"%s\"", buf, proc->pid);
     sprintf(buf, "%s}", buf);
 }
