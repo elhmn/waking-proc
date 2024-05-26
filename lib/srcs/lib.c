@@ -181,7 +181,17 @@ char *get_cmdline(char *pid) {
     }
 
     bzero(buf, BUFFER_SIZE);
-    fread(buf, BUFFER_SIZE, 1, fp);
+    int ret = fread(buf, BUFFER_SIZE, 1, fp);
+    printf("Read %d bytes\n", ret);
+    // Convert the command line content to a string
+    for (int i = 0; i < ret; i++) {
+        printf("going through bytes read: %c", buf[i]);
+        if (buf[i] == '\0') {
+            printf("Found null byte at %d\n", i);
+            buf[i] = ' ';
+        }
+    }
+    printf("Command: [%s]\n", buf);
     fclose(fp);
     return strdup(buf);
 }
@@ -213,6 +223,7 @@ static t_proc *get_proc_info(char *pid, char *buf) {
     proc->pid = strdup(pid);
     proc->name = strdup(arr[1]);
     proc->command = get_cmdline(pid);
+    proc->state = strdup(arr[2]);
 
     free_arr(arr);
     return proc;
@@ -223,9 +234,10 @@ static void proc_to_string(t_proc *proc, char *buf) {
         return;
     }
     sprintf(buf, "{");
+    sprintf(buf, "%s\"pid\":\"%s\",", buf, proc->pid);
     sprintf(buf, "%s\"name\":\"%s\",", buf, proc->name);
     sprintf(buf, "%s\"command\":\"%s\",", buf, proc->command);
-    sprintf(buf, "%s\"pid\":\"%s\"", buf, proc->pid);
+    sprintf(buf, "%s\"state\":\"%s\"", buf, proc->state);
     sprintf(buf, "%s}", buf);
 }
 
@@ -284,7 +296,7 @@ static char *apple_list_processes(void) {
 
     bytesReturned = proc_listpids(PROC_ALL_PIDS, 0, pids, sizeof(pids));
     if (bytesReturned <= 0) {
-        fprintf(stderr, "Failed to list pids\n");
+       ` fprintf(stderr, "Failed to list pids\n");
         return NULL;
     }
 
