@@ -20,7 +20,6 @@ typedef struct proc {
 
 
 typedef struct stat {
-    
 } t_stat;
 
 #endif // WAKING_PROC_H
